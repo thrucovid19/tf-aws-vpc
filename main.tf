@@ -37,7 +37,7 @@ resource "aws_eip" "nat" {
 }
 
 resource "aws_nat_gateway" "default" {
-  depends_on = ["aws_internet_gateway.default"]
+  depends_on = [aws_internet_gateway.default]
 
   count = length(var.public_subnet_cidr_blocks)
 
@@ -194,4 +194,125 @@ resource "aws_route_table_association" "private" {
 
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[count.index].id
+}
+
+# Create a public security group
+
+resource "aws_security_group" "public" {
+  name        = "${local.name} Firewall-Public"
+  description = "Allow inbound applications from the internet"
+  vpc_id      = aws_vpc.default.id
+}
+
+resource "aws_security_group_rule" "public" {
+  for_each          = local.public_sg_rules
+  security_group_id = aws_security_group.public.id
+  type              = each.value.type
+  from_port         = each.value.from_port
+  to_port           = each.value.to_port
+  protocol          = each.value.protocol
+  cidr_blocks       = [each.value.cidr_blocks]
+}
+
+# Create a management security group
+
+resource "aws_security_group" "mgmt" {
+  name        = "${local.name} Firewall-Mgmt"
+  description = "Allow inbound management to the firewall"
+  vpc_id      = aws_vpc.default.id
+}
+
+resource "aws_security_group_rule" "mgmt" {
+  for_each          = local.management_sg_rules
+  security_group_id = aws_security_group.mgmt.id
+  type              = each.value.type
+  from_port         = each.value.from_port
+  to_port           = each.value.to_port
+  protocol          = each.value.protocol
+  cidr_blocks       = [each.value.cidr_blocks]
+}
+
+# Create a private security group
+
+resource "aws_security_group" "private" {
+  name        = "${local.name} Firewall-Private"
+  description = "Allow inbound traffic to the firewalls private interfaces"
+  vpc_id      = aws_vpc.default.id
+}
+
+resource "aws_security_group_rule" "private" {
+  for_each          = local.private_sg_rules
+  security_group_id = aws_security_group.private.id
+  type              = each.value.type
+  from_port         = each.value.from_port
+  to_port           = each.value.to_port
+  protocol          = each.value.protocol
+  cidr_blocks       = [each.value.cidr_blocks]
+}
+
+resource "aws_security_group_rule" "from_vmseries" {
+  security_group_id = data.terraform_remote_state.panorama.outputs.mgmt_sg
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = [aws_vpc.default.cidr_block]
+}
+
+locals {
+  management_sg_rules = {
+    ssh-from-on-prem = {
+      type        = "ingress"
+      cidr_blocks = var.mgmt_subnet
+      protocol    = "tcp"
+      from_port   = "22"
+      to_port     = "22"
+    }
+    https-from-on-prem = {
+      type        = "ingress"
+      cidr_blocks = var.mgmt_subnet
+      protocol    = "tcp"
+      from_port   = "443"
+      to_port     = "443"
+    }
+    egress = {
+      type        = "egress"
+      cidr_blocks = "0.0.0.0/0"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+    }
+  }
+  public_sg_rules = {
+    ingress = {
+      type        = "ingress"
+      cidr_blocks = "0.0.0.0/0"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+    }
+    egress = {
+      type        = "egress"
+      cidr_blocks = "0.0.0.0/0"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+    }
+  }
+  private_sg_rules = {
+    ingress = {
+      type        = "ingress"
+      cidr_blocks = aws_vpc.default.cidr_block
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+    }
+    egress = {
+      type        = "egress"
+      cidr_blocks = "0.0.0.0/0"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+    }
+  }
 }
