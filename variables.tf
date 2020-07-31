@@ -1,5 +1,5 @@
 variable "name" {
-  default     = "Default"
+  default     = "Default"  
   type        = string
   description = "Name of the VPC"
 }
@@ -22,6 +22,12 @@ variable "key_name" {
 
 variable "cidr_block" {
   default     = "10.0.0.0/16"
+  type        = string
+  description = "CIDR block for the VPC"
+}
+
+variable "mgmt_subnet" {
+  default     = "192.168.1.0/24"
   type        = string
   description = "CIDR block for the VPC"
 }

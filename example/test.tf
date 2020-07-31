@@ -14,9 +14,9 @@ resource "aws_key_pair" "thrucovid19" {
 }
 
 module "tf-aws-vpc" {
-  source         = "github.com/thrucovid19/tf-aws-vpc"
-  name           = "Test"
-  environment    = "testing"
-  key_name       = aws_key_pair.thrucovid19.key_name
-  mgmt_subnet    = "192.168.1.0/24"
+  source      = "github.com/thrucovid19/tf-aws-vpc"
+  name        = "Test"
+  environment = "testing"
+  key_name    = aws_key_pair.thrucovid19.key_name
+  mgmt_subnet = "192.168.1.0/24"
 }

@@ -46,7 +46,7 @@ resource "aws_nat_gateway" "default" {
 
   tags = merge(
     {
-      Name        = "gwNAT",
+      Name        = "gwNAT ${count.index}",
       Environment = var.environment
     },
     var.tags
@@ -62,7 +62,7 @@ resource "aws_route_table" "private" {
 
   tags = merge(
     {
-      Name        = "PrivateRouteTable",
+      Name        = "PrivateRouteTable ${count.index}",
       Environment = var.environment
     },
     var.tags
@@ -129,7 +129,7 @@ resource "aws_subnet" "public" {
 
   tags = merge(
     {
-      Name        = "PublicSubnet",
+      Name        = "PublicSubnet ${count.index}",
       Environment = var.environment
     },
     var.tags
@@ -148,7 +148,7 @@ resource "aws_subnet" "management" {
 
   tags = merge(
     {
-      Name        = "ManagementSubnet",
+      Name        = "ManagementSubnet ${count.index}",
       Environment = var.environment
     },
     var.tags
@@ -166,7 +166,7 @@ resource "aws_subnet" "private" {
 
   tags = merge(
     {
-      Name        = "PrivateSubnet",
+      Name        = "PrivateSubnet ${count.index}",
       Environment = var.environment
     },
     var.tags
@@ -199,7 +199,7 @@ resource "aws_route_table_association" "private" {
 # Create a public security group
 
 resource "aws_security_group" "public" {
-  name        = "${local.name} Firewall-Public"
+  name        = "${var.name} Firewall-Public"
   description = "Allow inbound applications from the internet"
   vpc_id      = aws_vpc.default.id
 }
@@ -217,7 +217,7 @@ resource "aws_security_group_rule" "public" {
 # Create a management security group
 
 resource "aws_security_group" "mgmt" {
-  name        = "${local.name} Firewall-Mgmt"
+  name        = "${var.name} Firewall-Mgmt"
   description = "Allow inbound management to the firewall"
   vpc_id      = aws_vpc.default.id
 }
@@ -235,7 +235,7 @@ resource "aws_security_group_rule" "mgmt" {
 # Create a private security group
 
 resource "aws_security_group" "private" {
-  name        = "${local.name} Firewall-Private"
+  name        = "${var.name} Firewall-Private"
   description = "Allow inbound traffic to the firewalls private interfaces"
   vpc_id      = aws_vpc.default.id
 }
@@ -250,14 +250,14 @@ resource "aws_security_group_rule" "private" {
   cidr_blocks       = [each.value.cidr_blocks]
 }
 
-resource "aws_security_group_rule" "from_vmseries" {
+/*resource "aws_security_group_rule" "from_vmseries" {
   security_group_id = data.terraform_remote_state.panorama.outputs.mgmt_sg
   type              = "ingress"
   from_port         = 0
   to_port           = 0
   protocol          = "-1"
   cidr_blocks       = [aws_vpc.default.cidr_block]
-}
+}*/
 
 locals {
   management_sg_rules = {
